@@ -1,0 +1,59 @@
+syntax = "proto3";
+
+package validator;
+
+option go_package = "github.com/inframint/validator/proto";
+
+service ValidatorService {
+    rpc ValidateEntitlement (ValidateEntitlementRequest) returns (ValidateEntitlementResponse);
+    rpc ConsumeEntitlement (ConsumeEntitlementRequest) returns (ConsumeEntitlementResponse);
+    rpc ValidateSignature (ValidateSignatureRequest) returns (ValidateSignatureResponse);
+}
+
+message ValidateEntitlementRequest {
+    string entitlement_id = 1;
+    string signature = 2;
+    string message = 3;
+}
+
+message ValidateEntitlementResponse {
+    bool valid = 1;
+    string error = 2;
+    Entitlement entitlement = 3;
+}
+
+message ConsumeEntitlementRequest {
+    string entitlement_id = 1;
+    uint64 amount = 2;
+    string signature = 3;
+    string message = 4;
+}
+
+message ConsumeEntitlementResponse {
+    bool success = 1;
+    string error = 2;
+    uint64 remaining_quota = 3;
+}
+
+message ValidateSignatureRequest {
+    string entitlement_id = 1;
+    string signature = 2;
+    string message = 3;
+}
+
+message ValidateSignatureResponse {
+    bool valid = 1;
+    string error = 2;
+}
+
+message Entitlement {
+    string id = 1;
+    string service_id = 2;
+    string buyer = 3;
+    uint64 tier_id = 4;
+    uint64 quota_requests = 5;
+    uint64 quota_used = 6;
+    uint64 purchased_at = 7;
+    uint64 expires_at = 8;
+    bool active = 9;
+}

@@ -1,0 +1,69 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-inframint}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    restart: always
+    ports:
+      - "6379:6379"
+
+  validator:
+    build:
+      context: ./validator
+      dockerfile: Dockerfile
+    restart: always
+    environment:
+      VALIDATOR_REDIS_URL: redis://redis:6379
+      VALIDATOR_SUI_RPC_URL: ${SUI_RPC_URL:-https://fullnode.testnet.sui.io:443}
+      VALIDATOR_CONTRACT_ADDRESS: ${CONTRACT_ADDRESS:-0x_mock_address}
+      VALIDATOR_GRPC_PORT: 50051
+    ports:
+      - "50051:50051"
+    depends_on:
+      - redis
+
+  backend:
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: always
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-inframint}
+      INFRAMINT_SERVER_PORT: 8000
+      INFRAMINT_SERVER_HOST: 0.0.0.0
+      INFRAMINT_AUTH_JWT_SECRET: ${JWT_SECRET:-changeme_production_secret}
+      INFRAMINT_REDIS_URL: redis://redis:6379
+      INFRAMINT_VALIDATOR_URL: http://validator:50051
+    ports:
+      - "8000:8000"
+    depends_on:
+      - postgres
+      - redis
+      - validator
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:8000}
+    restart: always
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
